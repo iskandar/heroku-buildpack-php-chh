@@ -237,6 +237,24 @@ function package_newrelic_enabled() {
     fi
 }
 
+function package_composer_install_disabled() {
+    local val=$(jq --raw-output '.extra.heroku["skip-composer-install"] // false' < "$BUILD_DIR/composer.json")
+    if [ "$val" = "true" ]; then
+        return 0
+    else
+        return 1
+    fi
+}
+
+function package_npm_install_disabled() {
+    local val=$(jq --raw-output '.extra.heroku["skip-npm-install"] // false' < "$BUILD_DIR/composer.json")
+    if [ "$val" = "true" ]; then
+        return 0
+    else
+        return 1
+    fi
+}
+
 export_env_dir "$3"
 
 # Download jq binary for JSON processing
@@ -384,8 +402,13 @@ fi
 
 "$FRAMEWORK" compile "$BUILD_DIR" "$CACHE_DIR"
 
-install_node_deps "$BUILD_DIR"
-install_composer_deps "$BUILD_DIR"
+if ! package_npm_install_disabled; then
+    install_node_deps "$BUILD_DIR"
+fi
+
+if ! package_composer_install_disabled; then
+    install_composer_deps "$BUILD_DIR"
+fi
 
 LOG_FILES=$(unique_array ${LOG_FILES[@]} ${USER_LOG_FILES[@]})
 if [ -n "$FRAMEWORK" ] && [ -f "$FRAMEWORK" ]; then

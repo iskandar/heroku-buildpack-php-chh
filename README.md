@@ -282,6 +282,22 @@ It's recommended to add the New Relic addon to your Heroku app, but you
 can also set your license key manually by setting the `NEW_RELIC_LICENSE_KEY` config var via `heroku config:set`.
 
     "newrelic": true
+    
+#### skip-composer-install
+
+_Default: false_
+
+If set, the buildpack will skip the `composer install` step
+
+    "skip-composer-install": true
+
+#### skip-npm-install
+
+_Default: false_
+
+If set, the buildpack will skip the `npm install` step
+
+    "skip-npm-install": true
 
 #### log-files
 
