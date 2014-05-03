@@ -1,0 +1,29 @@
+#!/bin/bash
+
+#
+# A simple 'framework' definition that allows us to:
+# - Overwrite site.conf.erb and nginx.conf.erb with our custom config files
+#
+
+BUILD_DIR="$2"
+basedir="$( cd -P "$( dirname "$0" )" && pwd )"
+
+case "$1" in
+    detect)
+        if [ ! -f "$BUILD_DIR/matter-apps.json" ]; then
+            exit 1
+        fi
+        echo "-----> Detected Matter app"
+        exit 0
+        ;;
+    compile)
+        echo "-----> Setting up Matter apps"
+
+        # Generate the nginx conf template
+        export SOURCE_ROOT=$BUILD_DIR
+        php $BUILD_DIR/etc/nginx/heroku/heroku.conf.php > "$BUILD_DIR/conf/nginx.conf.erb"
+
+        # Use an empty site.conf template
+        echo > "$BUILD_DIR/conf/site.conf.erb"
+        ;;
+esac
