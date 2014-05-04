@@ -71,12 +71,14 @@ fi
 if test -d $cache_dir; then
   status "Restoring node_modules from cache"
   test -d $cache_dir/node_modules && cp -r $cache_dir/node_modules $build_dir/
-  # Set a bower cache dir
-  # @see http://stackoverflow.com/a/18564317/916797
-  export bower_storage__packages=$cache_dir/bower
 fi
 
+# Set a bower cache dir in case we have a bower npm post-install task
+# @see http://stackoverflow.com/a/18564317/916797
+export bower_storage__packages=$build_dir/bower_cache
+
 status "Installing dependencies"
+status "Cache dir is $cache_dir"
 npm install --unsafe-perm --production 2>&1 | indent
 
 status "Pruning unused dependencies"
@@ -86,6 +88,14 @@ status "Caching node_modules for future builds"
 rm -rf $cache_dir
 mkdir -p $cache_dir
 test -d $build_dir/node_modules && cp -r $build_dir/node_modules $cache_dir/
+
+# Handle the bower cache dir, if we have any
+if test -d $build_dir/bower_cache; then
+  cp -r $build_dir/bower_cache $cache_dir/
+  rm -Rf $build_dir/bower_cache
+fi
+
+
 
 status "Cleaning up node-gyp and npm artifacts"
 rm -rf "$build_dir/.node-gyp"
