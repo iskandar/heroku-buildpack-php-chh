@@ -97,13 +97,13 @@ test -d $build_dir/node_modules && cp -r $build_dir/node_modules $cache_dir/
 if test -f $build_dir/node_modules/bower/bin/bower; then
     if test -f $build_dir/bower.json; then
         # Run bower install
-        # $build_dir/node_modules/bower/bin/bower install --allow-root 2>&1 | indent
+        $build_dir/node_modules/bower/bin/bower install --allow-root 2>&1 | indent
     fi
 fi
 
 # Handle the bower cache dir, if we have any
 if test -d $build_dir/bower_cache; then
-  status "Storing bower cache"
+  status "Storing bower cache for future builds"
   cp -r $build_dir/bower_cache $cache_dir/
   rm -Rf $build_dir/bower_cache
 fi
