@@ -73,6 +73,11 @@ if test -d $cache_dir; then
   test -d $cache_dir/node_modules && cp -r $cache_dir/node_modules $build_dir/
 fi
 
+if test -f $build_dir/.npmrc; then
+    status "Setting npm userconfig to $build_dir/.npmrc"
+    npm config set userconfig $build_dir/.npmrc;
+fi
+
 status "Installing dependencies"
 npm install --production 2>&1 | indent
 
