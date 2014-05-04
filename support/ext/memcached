@@ -12,7 +12,7 @@ curl "https://s3-eu-west-1.amazonaws.com/chh-heroku-buildpack-php/package/libmem
 cd php-memcached-${php_memcached_version}
 /app/vendor/php/bin/phpize
 ./configure --with-php-config=/app/vendor/php/bin/php-config \
-            --with-libmemcached-dir=/app/vendor/libmemcached
+            --with-libmemcached-dir=/app/vendor/libmemcached \
             --enable-memcached
 
 make

@@ -47,10 +47,10 @@ function fetch_package() {
         curl "$package_url" -L -s > "$CACHE_DIR/package/${package}.tgz"
         echo "$checksum" > "$CACHE_DIR/package/${package}.md5"
     else
-        echo "Checksums match. Fetching from cache."
+        echo "Checksums match. Fetching $package from cache."
     fi
 
-    tar xzf "$CACHE_DIR/package/${package}.tgz" -C "$location"
+    tar xzvf "$CACHE_DIR/package/${package}.tgz" -C "$location"
 }
 
 function log_error() {
@@ -432,6 +432,7 @@ fi
 
 status "Vendoring binaries into slug"
 mv /app/vendor/libmcrypt vendor/libmcrypt
+mv /app/vendor/libyaml vendor/libyaml
 mv /app/vendor/libicu vendor/libicu
 mv /app/vendor/nginx vendor/nginx
 mv /app/vendor/php vendor/php

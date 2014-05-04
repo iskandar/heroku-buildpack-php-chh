@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
 set -e
+set -x
 
 basedir="$( cd -P "$( dirname "$0" )" && pwd )"
 source "$basedir/../conf/buildpack.conf"
@@ -44,29 +45,12 @@ SH
 )
 else
     install_zend_optimizer=$(cat <<SH
-    /app/vendor/php/bin/pecl install ZendOpcache-beta \
+    yes '' | /app/vendor/php/bin/pecl install ZendOpcache-beta \
         && echo "zend_extension=\$(/app/vendor/php/bin/php-config --extension-dir)/opcache.so" >> /app/vendor/php/etc/conf.d/opcache.ini
 SH
 )
 fi
 
-install_mongo=$(cat <<SH
-/app/vendor/php/bin/pecl install mongo \
-    && echo "extension=mongo.so" >> /app/vendor/php/etc/conf.d/mongo.ini
-SH
-)
-
-install_redis=$(cat <<SH
-/app/vendor/php/bin/pecl install redis \
-    && echo "extension=redis.so" >> /app/vendor/php/etc/conf.d/redis.ini
-SH
-)
-
-install_igbinary=$(cat <<SH
-/app/vendor/php/bin/pecl install igbinary \
-    && echo "extension=igbinary.so" >> /app/vendor/php/etc/conf.d/igbinary.ini
-SH
-)
 
 build_command=$(cat <<BUILD_CMD
     mkdir -p "/app/vendor/php/zlib" "/app/vendor/libmcrypt" "/app/vendor/libicu" \
@@ -112,10 +96,7 @@ build_command=$(cat <<BUILD_CMD
     && make \
     && make install \
     && /app/vendor/php/bin/pear config-set php_dir /app/vendor/php \
-    && $install_zend_optimizer \
-    && $install_mongo \
-    && $install_redis \
-    && $install_igbinary
+    && $install_zend_optimizer
 BUILD_CMD
 )
 
