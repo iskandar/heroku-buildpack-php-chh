@@ -12,7 +12,8 @@ git clone --depth 1 -b phalcon-v${PHALCON_VERSION} \
 
 cd cphalcon/build && ./install
 
-ls -al modules/ || true
-# cp modules/phalcon.so "$EXT_DIR/phalcon.so"
+# The 'install' command puts the module .so file
+# in /app/vendor/php/lib/php/extensions/no-debug-non-zts-VERSION/
+cp -v /app/vendor/php/lib/php/extensions/no-debug-non-zts-*/phalcon.so "$EXT_DIR/phalcon.so"
 echo "extension=phalcon.so" > "$PREFIX/etc/conf.d/phalcon.ini"
 
