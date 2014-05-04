@@ -71,6 +71,9 @@ fi
 if test -d $cache_dir; then
   status "Restoring node_modules from cache"
   test -d $cache_dir/node_modules && cp -r $cache_dir/node_modules $build_dir/
+  # Set a bower cache dir
+  # @see http://stackoverflow.com/a/18564317/916797
+  export bower_storage__packages=$cache_dir/bower
 fi
 
 status "Installing dependencies"
