@@ -28,7 +28,7 @@ fi
 zlib_version="$NGINX_ZLIB_VERSION"
 pcre_version="$NGINX_PCRE_VERSION"
 
-tempdir="$( mktemp -t nginx_xxxx )"
+tempdir="$( mktemp -t nginx_XXXX )"
 rm -rf $tempdir
 mkdir -p $tempdir
 cd $tempdir
@@ -55,7 +55,7 @@ vulcan build --verbose \
     --prefix /app/vendor/nginx \
     --source "$tempdir" \
     --output "$tempdir/nginx-${nginx_version}.tgz" \
-    --command "cd nginx-${nginx_version} && ./configure --prefix=/app/vendor/nginx --with-http_ssl_module --with-pcre=../pcre-${pcre_version} --with-zlib=../zlib-${zlib_version} && make && make install"
+    --command "cd nginx-${nginx_version} && ./configure --prefix=/app/vendor/nginx --with-http_ssl_module --with-http_stub_status_module --with-http_realip_module --with-pcre=../pcre-${pcre_version} --with-zlib=../zlib-${zlib_version} && make && make install"
 
 echo "-----> Uploading package to s3://$S3_BUCKET/package/nginx-${nginx_version}.tgz"
 
