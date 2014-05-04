@@ -51,7 +51,7 @@ function fetch_package() {
         echo "Checksums match. Fetching $package from cache."
     fi
 
-    tar xzvf "$CACHE_DIR/package/${package}.tgz" -C "$location"
+    tar xzf "$CACHE_DIR/package/${package}.tgz" -C "$location"
 }
 
 function log_error() {
