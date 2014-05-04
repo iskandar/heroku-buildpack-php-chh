@@ -12,12 +12,12 @@ if [ -z "$S3_BUCKET" ]; then
     exit 1
 fi
 
-tempdir="$( mktemp -t libmemcached_xxxx )"
+tempdir="$( mktemp -t libmemcached_XXXX )"
 rm -rf $tempdir
 mkdir -p $tempdir
 cd $tempdir
 
-memcached_version=1.0.17
+memcached_version=1.0.18
 
 echo "-----> Downloading libmemcached"
 
