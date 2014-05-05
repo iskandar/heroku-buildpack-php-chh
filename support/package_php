@@ -15,6 +15,7 @@ fi
 
 php_version="$1"
 mcrypt_version="2.5.8"
+freetds_version="0.91"
 
 if [ -z "$PHP_ZLIB_VERSION" ]; then
     PHP_ZLIB_VERSION=1.2.8
@@ -53,9 +54,10 @@ fi
 
 
 build_command=$(cat <<BUILD_CMD
-    mkdir -p "/app/vendor/php/zlib" "/app/vendor/libmcrypt" "/app/vendor/libicu" \
+    mkdir -p "/app/vendor/php/zlib" "/app/vendor/libmcrypt" "/app/vendor/libicu" "/app/vendor/freetds" \
     && curl "http://${S3_BUCKET}.s3.amazonaws.com/package/libicu-51.tgz" | tar xzv -C /app/vendor/libicu \
     && curl "http://${S3_BUCKET}.s3.amazonaws.com/package/libmcrypt-${mcrypt_version}.tgz" | tar xzv -C /app/vendor/libmcrypt \
+    && curl "http://${S3_BUCKET}.s3.amazonaws.com/package/freetds-${freetds_version}.tgz" | tar xzv -C /app/vendor/freetds \
     && export LD_LIBRARY_PATH=/app/vendor/libicu/lib \
     && export PATH=/app/vendor/libicu/bin:\$PATH \
     && mkdir -p "/app/vendor/php/etc/conf.d" \
@@ -70,6 +72,7 @@ build_command=$(cat <<BUILD_CMD
     --with-pdo-mysql \
     --with-pdo-sqlite \
     --with-pdo-pgsql=/usr/bin/pg_config \
+    --with-pdo-dblib=/app/vendor/freetds \
     --with-pgsql \
     --enable-shmop \
     --enable-zip \
