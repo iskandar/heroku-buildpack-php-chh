@@ -328,14 +328,15 @@ VENDORED_PHP=/app/vendor/php
 status "Bundling NGINX ${NGINX_VERSION}"
 fetch_engine_package nginx "$NGINX_VERSION" /app/vendor/nginx | indent
 
-status "Bundling PHP ${PHP_VERSION}"
 
-# Install libraries also on build container, so PHP doesn't wayne about missing
+status "Bundling libraries"
+# Install libraries also on build container, so PHP doesn't complain about missing
 # dynamic libraries when running it during the slug compilation.
-fetch_package "libicu-51" /app/vendor/libicu > /dev/null
-fetch_package "libmcrypt-${MCRYPT_VERSION}" /app/vendor/libmcrypt > /dev/null
-# fetch_package "freetds-${FREETDS_VERSION}" /app/vendor/freetds > /dev/null
+fetch_package "libicu-51" /app/vendor/libicu | indent
+fetch_package "libmcrypt-${MCRYPT_VERSION}" /app/vendor/libmcrypt | indent
+fetch_package "freetds-${FREETDS_VERSION}" /app/vendor/freetds | indent
 
+status "Bundling PHP ${PHP_VERSION}"
 fetch_engine_package php "$PHP_VERSION" /app/vendor/php | indent
 
 test ! -d ".profile.d" && mkdir -p .profile.d || true
@@ -346,6 +347,9 @@ export HEROKU_BUILD_TIME=$(date +%Y%m%d%H%M%S)
 SH
 
 source ".profile.d/php.sh"
+
+status "PHP Version"
+php -v | indent
 
 # Fetch additional extensions
 status "Bundling extensions"
