@@ -1,0 +1,69 @@
+#!/usr/bin/env bash
+
+set -ex
+
+DEFAULT_VERSION="0.91"
+dep_version=${VERSION:-$DEFAULT_VERSION}
+dep_dirname=freetds-${dep_version}
+dep_archive_name=${dep_dirname}.tar.gz
+dep_url=ftp://ftp.freetds.org/pub/freetds/stable/${dep_archive_name}
+
+
+if [ -z "$dep_version" ]; then
+    echo "Usage: $(basename "$0") VERSION" >&2
+    exit 1
+fi
+
+basedir="$( cd -P "$( dirname "$0" )" && pwd )"
+source "$basedir/../conf/buildpack.conf"
+
+export PATH=${basedir}/../vendor/bin:$PATH
+
+if [ -z "$S3_BUCKET" ]; then
+    echo "Must set S3_BUCKET environment variable" >&2
+    exit 1
+fi
+
+tempdir="$( mktemp -t freetds_XXXX )"
+rm -rf $tempdir
+mkdir -p $tempdir 
+cd $tempdir
+
+echo "-----> Downloading freetds ${dep_version}"
+
+curl -L ${dep_url} | tar xz
+
+#./configure \
+#    --prefix=${OUT_PREFIX} \
+#    --disable-debug
+#    --with-gnutls \
+#    --with-unixodbc= \
+#    --with-gnutls
+
+build_cmd=$(cat <<SH
+    mkdir -p /app/vendor/freetds \
+    && cd $dep_dirname \
+    && ./configure --prefix=/app/vendor/freetds --disable-apps --disable-server --disable-debug \
+    && make && make install
+SH
+)
+
+vulcan build --verbose \
+    --prefix /app/vendor/freetds \
+    --source "$tempdir" \
+    --output "${tempdir}/$dep_dirname.tgz" \
+    --name freetds \
+    --command "$build_cmd"
+
+s3_path=s3://$S3_BUCKET/package/$dep_dirname.tgz
+
+echo "-----> Uploading package to ${s3_path}"
+
+s3cmd put \
+    --verbose --acl-public \
+    "$tempdir/$dep_dirname.tgz" \
+    "${s3_path}"
+
+"$basedir/package-checksum" "$dep_dirname"
+
+echo "-----> Done building freetds package!"

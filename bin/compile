@@ -44,11 +44,11 @@ function fetch_package() {
     mkdir -p "$CACHE_DIR/package/$(dirname "$package")"
 
     if [ "$cache_checksum" != "$checksum" ]; then
-        echo "Fetching $package from $package_url."
+        echo "Fetching $package from $package_url." | indent
         curl "$package_url" -L -s > "$CACHE_DIR/package/${package}.tgz"
         echo "$checksum" > "$CACHE_DIR/package/${package}.md5"
     else
-        echo "Checksums match. Fetching $package from cache."
+        echo "Checksums match. Fetching $package from cache." | indent
     fi
 
     tar xzf "$CACHE_DIR/package/${package}.tgz" -C "$location"
@@ -270,6 +270,7 @@ AVAILABLE_PHP_VERSIONS=$(curl "http://${S3_BUCKET}.s3.amazonaws.com/manifest.php
 AVAILABLE_NGINX_VERSIONS=$(curl "http://${S3_BUCKET}.s3.amazonaws.com/manifest.nginx" 2> /dev/null)
 
 MCRYPT_VERSION="2.5.8"
+FREETDS_VERSION="0.91"
 PHP_VERSION="default"
 NGINX_VERSION="default"
 DOCUMENT_ROOT=
@@ -333,6 +334,7 @@ status "Bundling PHP ${PHP_VERSION}"
 # dynamic libraries when running it during the slug compilation.
 fetch_package "libicu-51" /app/vendor/libicu > /dev/null
 fetch_package "libmcrypt-${MCRYPT_VERSION}" /app/vendor/libmcrypt > /dev/null
+# fetch_package "freetds-${FREETDS_VERSION}" /app/vendor/freetds > /dev/null
 
 fetch_engine_package php "$PHP_VERSION" /app/vendor/php | indent
 
@@ -433,6 +435,7 @@ fi
 
 status "Vendoring binaries into slug"
 mv /app/vendor/libmcrypt vendor/libmcrypt
+mv /app/vendor/freetds vendor/freetds
 mv /app/vendor/libicu vendor/libicu
 mv /app/vendor/nginx vendor/nginx
 mv /app/vendor/php vendor/php
