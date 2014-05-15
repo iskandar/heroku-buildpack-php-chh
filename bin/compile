@@ -22,12 +22,15 @@ echo -n "Running in $BUILD_DIR"
 mkdir -p "$CACHE_DIR/package"
 
 # Check to see if our target is the same as $APP_PREFIX
-COMPILING_IN_PLACE=$(touch testfile && [ -f $APP_PREFIX/testfile ] && echo "1")
-if [ $COMPILING_IN_PLACE ]; then
+touch __testfile
+if [ -f $APP_PREFIX/__testfile ]; then
+    COMPILING_IN_PLACE=1
     echo " (in-place)"
 else
+    COMPILING_IN_PLACE=
     echo
 fi
+rm __testfile
 
 function fetch_engine_package() {
     local engine="$1"
