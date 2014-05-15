@@ -14,8 +14,11 @@ fi
 
 BUILD_DIR="$1"
 CACHE_DIR="$2"
+ENV_DIR=${3}
+APP_PREFIX=${4:-/app}
 
-cd "$BUILD_DIR"
+pushd "$BUILD_DIR"
+echo "Running in $BUILD_DIR"
 mkdir -p "$CACHE_DIR/package"
 
 function fetch_engine_package() {
@@ -105,7 +108,7 @@ function install_composer_deps() {
         for ext in $required_extensions; do
             echo "$ext" | indent
             # TODO: Find a better way to ignore extensions which were not found in S3
-            fetch_package "ext/$(php_api_version)/php-${ext}" "/app/vendor/php" 2>/dev/null || true | indent
+            fetch_package "ext/$(php_api_version)/php-${ext}" "$APP_PREFIX/vendor/php" 2>/dev/null || true | indent
         done
     fi
 
@@ -137,10 +140,9 @@ function install_node_deps() {
 
     local node_path='vendor/node'
 
-    # Symlink node to /app/vendor/node so node and its modules are runnable.
-
-    ln -s ${BUILD_DIR}/${node_path}/ /app/${node_path}
-    ln -s ${BUILD_DIR}/node_modules /app/node_modules
+    # Symlink node to $APP_PREFIX/vendor/node so node and its modules are runnable.
+    [ ! -e $APP_PREFIX/${node_path} ] && ln -svf ${BUILD_DIR}/${node_path} $APP_PREFIX/${node_path} || true
+    [ ! -e $APP_PREFIX/node_modules ] && ln -svf ${BUILD_DIR}/node_modules $APP_PREFIX/node_modules || true
 
     echo "Node " `node -v` | indent
 }
@@ -173,7 +175,7 @@ function install_newrelic() {
 
     local version="$1"
     local cwd=$(pwd)
-    local ext_dir=/app/vendor/php/lib/php/extensions/no-debug-non-zts-$(php_api_version)
+    local ext_dir=$APP_PREFIX/vendor/php/lib/php/extensions/no-debug-non-zts-$(php_api_version)
     local tempdir=$(mktmpdir "newrelic")
     cd "$tempdir"
 
@@ -183,7 +185,7 @@ function install_newrelic() {
 
     cp -f "daemon/newrelic-daemon.x64" $BUILD_DIR/vendor/newrelic/bin/newrelic-daemon
     cp -f "agent/x64/newrelic-$(php_api_version).so" "${ext_dir}/newrelic.so"
-    cp -f "$basedir/../conf/php/newrelic.ini" "/app/vendor/php/etc/conf.d/newrelic.ini"
+    cp -f "$basedir/../conf/php/newrelic.ini" "$APP_PREFIX/vendor/php/etc/conf.d/newrelic.ini"
 
     cd "$cwd"
 }
@@ -256,7 +258,7 @@ function package_npm_install_disabled() {
     fi
 }
 
-export_env_dir "$3"
+export_env_dir "$ENV_DIR"
 
 # Download jq binary for JSON processing
 export PATH="$HOME/bin:$PATH"
@@ -281,7 +283,7 @@ PHP_INCLUDES=
 COMPILE_CMD=
 NGINX_INCLUDES=
 NEWRELIC_VERSION=4.4.5.35
-LOG_FILES=( "/app/vendor/nginx/logs/access.log" "/app/vendor/nginx/logs/error.log" "/app/vendor/php/var/log/error.log" )
+LOG_FILES=( "$APP_PREFIX/vendor/nginx/logs/access.log" "$APP_PREFIX/vendor/nginx/logs/error.log" "$APP_PREFIX/vendor/php/var/log/error.log" )
 
 # Read config variables from composer.json if it exists
 if [ -f "$BUILD_DIR/composer.json" ]; then
@@ -320,29 +322,29 @@ if echo "$NGINX_VERSION" | grep '\*' &>/dev/null; then
     NGINX_VERSION=$(echo "$AVAILABLE_NGINX_VERSIONS" | grep "^$NGINX_VERSION$" | sort -r | head -n1)
 fi
 
-VENDORED_NGINX=/app/vendor/nginx
-VENDORED_PHP=/app/vendor/php
+VENDORED_NGINX=$APP_PREFIX/vendor/nginx
+VENDORED_PHP=$APP_PREFIX/vendor/php
 
 [ ! -d "$BUILD_DIR/vendor" ] && mkdir -p "$BUILD_DIR/vendor"
 
 status "Bundling NGINX ${NGINX_VERSION}"
-fetch_engine_package nginx "$NGINX_VERSION" /app/vendor/nginx | indent
+fetch_engine_package nginx "$NGINX_VERSION" $APP_PREFIX/vendor/nginx | indent
 
 
 status "Bundling libraries"
 # Install libraries also on build container, so PHP doesn't complain about missing
 # dynamic libraries when running it during the slug compilation.
-fetch_package "libicu-51" /app/vendor/libicu | indent
-fetch_package "libmcrypt-${MCRYPT_VERSION}" /app/vendor/libmcrypt | indent
-fetch_package "freetds-${FREETDS_VERSION}" /app/vendor/freetds | indent
+fetch_package "libicu-51" $APP_PREFIX/vendor/libicu | indent
+fetch_package "libmcrypt-${MCRYPT_VERSION}" $APP_PREFIX/vendor/libmcrypt | indent
+fetch_package "freetds-${FREETDS_VERSION}" $APP_PREFIX/vendor/freetds | indent
 
 status "Bundling PHP ${PHP_VERSION}"
-fetch_engine_package php "$PHP_VERSION" /app/vendor/php | indent
+fetch_engine_package php "$PHP_VERSION" $APP_PREFIX/vendor/php | indent
 
 test ! -d ".profile.d" && mkdir -p .profile.d || true
 
 cat > ".profile.d/php.sh" <<SH
-export PATH=/sbin:/bin:/usr/sbin:/usr/bin:/app/bin:/app/vendor/nginx/sbin:/app/vendor/php/sbin:/app/vendor/php/bin:/app/vendor/bin:\$PATH
+export PATH=/sbin:/bin:/usr/sbin:/usr/bin:$APP_PREFIX/bin:/app/vendor/nginx/sbin:/app/vendor/php/sbin:/app/vendor/php/bin:/app/vendor/bin:\$PATH
 export HEROKU_BUILD_TIME=$(date +%Y%m%d%H%M%S)
 SH
 
@@ -354,34 +356,34 @@ php -v | indent
 # Fetch additional extensions
 status "Bundling extensions"
 echo "       apcu"
-fetch_package "ext/$(php_api_version)/php-apcu" "/app/vendor/php" | indent
+fetch_package "ext/$(php_api_version)/php-apcu" "$APP_PREFIX/vendor/php" | indent
 echo "       phpredis"
-fetch_package "ext/$(php_api_version)/php-redis" "/app/vendor/php" | indent
+fetch_package "ext/$(php_api_version)/php-redis" "$APP_PREFIX/vendor/php" | indent
 echo "       mongo"
-fetch_package "ext/$(php_api_version)/php-mongo" "/app/vendor/php" | indent
+fetch_package "ext/$(php_api_version)/php-mongo" "$APP_PREFIX/vendor/php" | indent
 
 if [ -f "$BUILD_DIR/composer.json" ] && package_newrelic_enabled; then
     install_newrelic "$NEWRELIC_VERSION"
 fi
 
 if [ -n "$BUILDPACK_DEBUG" ]; then
-    ls -R /app/vendor/nginx
-    ls -R /app/vendor/php
+    ls -R $APP_PREFIX/vendor/nginx
+    ls -R $APP_PREFIX/vendor/php
 fi
 
 mkdir -p "conf"
 cp "$basedir/../conf/nginx/base.conf.erb" "conf/nginx.conf.erb"
-cp "$basedir/../conf/php/php-fpm.conf" "/app/vendor/php/etc/php-fpm.conf"
-cp "$basedir/../conf/php/php.ini" "/app/vendor/php/etc/php.ini"
+cp "$basedir/../conf/php/php-fpm.conf" "$APP_PREFIX/vendor/php/etc/php-fpm.conf"
+cp "$basedir/../conf/php/php.ini" "$APP_PREFIX/vendor/php/etc/php.ini"
 
-pear config-set php_ini /app/vendor/php/etc/php.ini &> /dev/null
+# pear config-set php_ini $APP_PREFIX/vendor/php/etc/php.ini
 
 for conf in $PHP_EXTRA_CONFIG; do
-    echo "$conf" >> "/app/vendor/php/etc/php.ini"
+    echo "$conf" >> "$APP_PREFIX/vendor/php/etc/php.ini"
 done
 
 for include in $PHP_INCLUDES; do
-    cp "$BUILD_DIR/$include" "/app/vendor/php/etc/conf.d/"
+    cp "$BUILD_DIR/$include" "$APP_PREFIX/vendor/php/etc/conf.d/"
 done
 
 # Detect PHP framework
@@ -438,11 +440,11 @@ fi
 "$FRAMEWORK" post-compile "$BUILD_DIR" "$CACHE_DIR" || true
 
 status "Vendoring binaries into slug"
-mv /app/vendor/libmcrypt vendor/libmcrypt
-mv /app/vendor/freetds vendor/freetds
-mv /app/vendor/libicu vendor/libicu
-mv /app/vendor/nginx vendor/nginx
-mv /app/vendor/php vendor/php
+rsync -a --delete $APP_PREFIX/vendor/libmcrypt/ vendor/libmcrypt/
+rsync -a --delete $APP_PREFIX/vendor/freetds/ vendor/freetds/
+rsync -a --delete $APP_PREFIX/vendor/libicu/ vendor/libicu/
+rsync -a --delete $APP_PREFIX/vendor/nginx/ vendor/nginx/ || true
+rsync -a --delete $APP_PREFIX/vendor/php/ vendor/php/ || true
 
 mkdir -p "bin"
 
@@ -454,7 +456,7 @@ rm -f \$pmsgr
 mkfifo \$pmsgr
 
 for var in \`env | cut -f1 -d=\`; do
-    echo "env[\$var] = \\$\${var}" >> /app/vendor/php/etc/php-fpm.conf
+    echo "env[\$var] = \\$\${var}" >> $APP_PREFIX/vendor/php/etc/php-fpm.conf
 done
 
 export DOCUMENT_ROOT="$DOCUMENT_ROOT"
@@ -462,22 +464,22 @@ export INDEX_DOCUMENT="$INDEX_DOCUMENT"
 export NGINX_INCLUDES="$NGINX_INCLUDES"
 
 if [ -n "\$NEW_RELIC_LICENSE_KEY" ]; then
-    echo "newrelic.license=\"\$NEW_RELIC_LICENSE_KEY\"" > /app/vendor/php/etc/conf.d/newrelic_license.ini
+    echo "newrelic.license=\"\$NEW_RELIC_LICENSE_KEY\"" > $APP_PREFIX/vendor/php/etc/conf.d/newrelic_license.ini
 fi
 
-erb conf/nginx.conf.erb > /app/vendor/nginx/conf/nginx.conf
-erb conf/site.conf.erb > /app/vendor/nginx/conf/site.conf
+erb conf/nginx.conf.erb > $APP_PREFIX/vendor/nginx/conf/nginx.conf
+erb conf/site.conf.erb > $APP_PREFIX/vendor/nginx/conf/site.conf
 
 `init_log_plex_fifo ${LOG_FILES}`
 `tail_log_plex ${LOG_FILES} ${SYS_LOG_FILES}`
 
 (
-    exec php-fpm -p "/app/vendor/php"
+    exec php-fpm -p "$APP_PREFIX/vendor/php"
     \$pmsgr < "php-fpm"
 )&
 
 (
-    exec nginx -p "/app/vendor/nginx" -c /app/vendor/nginx/conf/nginx.conf
+    exec nginx -p "$APP_PREFIX/vendor/nginx" -c $APP_PREFIX/vendor/nginx/conf/nginx.conf
     \$pmsgr < "nginx"
 )&
 
