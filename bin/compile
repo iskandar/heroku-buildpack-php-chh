@@ -18,8 +18,16 @@ ENV_DIR=${3}
 APP_PREFIX=${4:-/app}
 
 pushd "$BUILD_DIR"
-echo "Running in $BUILD_DIR"
+echo -n "Running in $BUILD_DIR"
 mkdir -p "$CACHE_DIR/package"
+
+# Check to see if our target is the same as $APP_PREFIX
+COMPILING_IN_PLACE=$(touch testfile && [ -f $APP_PREFIX/testfile ] && echo "1")
+if [ $COMPILING_IN_PLACE ]; then
+    echo " (in-place)"
+else
+    echo
+fi
 
 function fetch_engine_package() {
     local engine="$1"
@@ -440,11 +448,11 @@ fi
 "$FRAMEWORK" post-compile "$BUILD_DIR" "$CACHE_DIR" || true
 
 status "Vendoring binaries into slug"
-rsync -a --delete $APP_PREFIX/vendor/libmcrypt/ vendor/libmcrypt/
-rsync -a --delete $APP_PREFIX/vendor/freetds/ vendor/freetds/
-rsync -a --delete $APP_PREFIX/vendor/libicu/ vendor/libicu/
-rsync -a --delete $APP_PREFIX/vendor/nginx/ vendor/nginx/ || true
-rsync -a --delete $APP_PREFIX/vendor/php/ vendor/php/ || true
+VENDOR_DIRS="libmcrypt freetds libicu nginx php"
+for VENDOR_PACKAGE in $VENDOR_DIRS; do
+    echo $VENDOR_PACKAGE | indent
+    [ ! $COMPILING_IN_PLACE ] && mv $APP_PREFIX/vendor/$VENDOR_PACKAGE vendor/$VENDOR_PACKAGE
+done
 
 mkdir -p "bin"
 
