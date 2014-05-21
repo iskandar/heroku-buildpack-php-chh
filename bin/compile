@@ -355,11 +355,17 @@ fetch_engine_package php "$PHP_VERSION" $APP_PREFIX/vendor/php | indent
 test ! -d ".profile.d" && mkdir -p .profile.d || true
 
 cat > ".profile.d/php.sh" <<SH
-export PATH=/sbin:/bin:/usr/sbin:/usr/bin:$APP_PREFIX/bin:/app/vendor/nginx/sbin:/app/vendor/php/sbin:/app/vendor/php/bin:/app/vendor/bin:\$PATH
+export PATH=/sbin:/bin:/usr/sbin:/usr/bin:/app/bin:/app/vendor/nginx/sbin:/app/vendor/php/sbin:/app/vendor/php/bin:/app/vendor/bin:\$PATH
 export HEROKU_BUILD_TIME=$(date +%Y%m%d%H%M%S)
 SH
 
 source ".profile.d/php.sh"
+
+# Force using vendored binaries - important when $APP_PREFIX != /app
+export PATH=$APP_PREFIX/bin:$APP_PREFIX/vendor/bin:$APP_PREFIX/vendor/nginx/sbin:$APP_PREFIX/vendor/php/bin:$APP_PREFIX/vendor/php/sbin:$PATH
+
+status "nginx Version"
+nginx -v | indent
 
 status "PHP Version"
 php -v | indent
