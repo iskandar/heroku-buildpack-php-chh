@@ -350,13 +350,13 @@ source ".profile.d/php.sh"
 status "Bundling forego"
 FOREGO_URL=https://godist.herokuapp.com/projects/ddollar/forego/releases/current/linux-amd64/forego
 if [ ! -f "$CACHE_DIR/forego" ]; then
-    echo -n "Fetching forego binary from $FOREGO_URL..."
+    echo -n "Fetching forego binary from $FOREGO_URL..." | indent
     curl --silent -L -o "$CACHE_DIR/forego" $FOREGO_URL
     echo "Done"
 fi
-mkdir -p $BUILD_DIR/vendor/bin
-cp -v "$CACHE_DIR/forego" "$BUILD_DIR/vendor/bin" | indent
-chmod +x $BUILD_DIR/vendor/bin/forego
+mkdir -p $APP_PREFIX/vendor/bin
+cp -v "$CACHE_DIR/forego" "$APP_PREFIX/vendor/bin" | indent
+chmod +x $APP_PREFIX/vendor/bin/forego
 
 status "forego Version"
 forego version 2>&1 | indent
