@@ -354,7 +354,8 @@ if [ ! -f "$CACHE_DIR/forego" ]; then
     curl --silent -L -o "$CACHE_DIR/forego" $FOREGO_URL
     echo "Done"
 fi
-cp -v "$CACHE_DIR/forego" "$BUILD_DIR/vendor/bin/" | indent
+mkdir -p $BUILD_DIR/vendor/bin
+cp -v "$CACHE_DIR/forego" "$BUILD_DIR/vendor/bin" | indent
 chmod +x $BUILD_DIR/vendor/bin/forego
 
 status "forego Version"
