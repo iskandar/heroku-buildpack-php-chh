@@ -58,11 +58,11 @@ function fetch_package() {
     mkdir -p "$CACHE_DIR/package/$(dirname "$package")"
 
     if [ "$cache_checksum" != "$checksum" ]; then
-        echo "Fetching $package from $package_url." | indent
+        echo "Fetching $package from $package_url."
         curl "$package_url" -L -s > "$CACHE_DIR/package/${package}.tgz"
         echo "$checksum" > "$CACHE_DIR/package/${package}.md5"
     else
-        echo "Checksums match. Fetching $package from cache." | indent
+        echo "Checksums match. Fetching $package from cache."
     fi
 
     tar xzf "$CACHE_DIR/package/${package}.tgz" -C "$location"
@@ -338,9 +338,33 @@ VENDORED_PHP=$APP_PREFIX/vendor/php
 
 [ ! -d "$BUILD_DIR/vendor" ] && mkdir -p "$BUILD_DIR/vendor"
 
+test ! -d ".profile.d" && mkdir -p .profile.d || true
+
+cat > ".profile.d/php.sh" <<SH
+export PATH=/sbin:/bin:/usr/sbin:/usr/bin:/app/bin:/app/vendor/nginx/sbin:/app/vendor/php/sbin:/app/vendor/php/bin:/app/vendor/bin:/app/.gem/ruby/1.9.1:\$PATH
+export HEROKU_BUILD_TIME=$(date +%Y%m%d%H%M%S)
+SH
+
+source ".profile.d/php.sh"
+
+status "Bundling forego"
+FOREGO_URL=https://godist.herokuapp.com/projects/ddollar/forego/releases/current/linux-amd64/forego
+if [ ! -f "$CACHE_DIR/forego" ]; then
+    echo -n "Fetching forego binary from $FOREGO_URL..."
+    curl --silent -L -o "$CACHE_DIR/forego" $FOREGO_URL
+    echo "Done"
+fi
+cp -v "$CACHE_DIR/forego" "$BUILD_DIR/vendor/bin/" | indent
+chmod +x $BUILD_DIR/vendor/bin/forego
+
+status "forego Version"
+forego version 2>&1 | indent
+
 status "Bundling NGINX ${NGINX_VERSION}"
 fetch_engine_package nginx "$NGINX_VERSION" $APP_PREFIX/vendor/nginx | indent
 
+status "nginx Version"
+nginx -v 2>&1 | indent
 
 status "Bundling libraries"
 # Install libraries also on build container, so PHP doesn't complain about missing
@@ -352,23 +376,8 @@ fetch_package "freetds-${FREETDS_VERSION}" $APP_PREFIX/vendor/freetds | indent
 status "Bundling PHP ${PHP_VERSION}"
 fetch_engine_package php "$PHP_VERSION" $APP_PREFIX/vendor/php | indent
 
-test ! -d ".profile.d" && mkdir -p .profile.d || true
-
-cat > ".profile.d/php.sh" <<SH
-export PATH=/sbin:/bin:/usr/sbin:/usr/bin:/app/bin:/app/vendor/nginx/sbin:/app/vendor/php/sbin:/app/vendor/php/bin:/app/vendor/bin:\$PATH
-export HEROKU_BUILD_TIME=$(date +%Y%m%d%H%M%S)
-SH
-
-source ".profile.d/php.sh"
-
-# Force using vendored binaries - important when $APP_PREFIX != /app
-export PATH=$APP_PREFIX/bin:$APP_PREFIX/vendor/bin:$APP_PREFIX/vendor/nginx/sbin:$APP_PREFIX/vendor/php/bin:$APP_PREFIX/vendor/php/sbin:$PATH
-
-status "nginx Version"
-nginx -v | indent
-
 status "PHP Version"
-php -v | indent
+php -v  2>&1 | indent
 
 # Fetch additional extensions
 status "Bundling extensions"
@@ -387,11 +396,6 @@ if [ -n "$BUILDPACK_DEBUG" ]; then
     ls -R $APP_PREFIX/vendor/nginx
     ls -R $APP_PREFIX/vendor/php
 fi
-
-mkdir -p "conf"
-cp "$basedir/../conf/nginx/base.conf.erb" "conf/nginx.conf.erb"
-cp "$basedir/../conf/php/php-fpm.conf" "$APP_PREFIX/vendor/php/etc/php-fpm.conf"
-cp "$basedir/../conf/php/php.ini" "$APP_PREFIX/vendor/php/etc/php.ini"
 
 # pear config-set php_ini $APP_PREFIX/vendor/php/etc/php.ini
 
