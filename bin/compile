@@ -123,7 +123,7 @@ function install_composer_deps() {
         done
     fi
 
-    php "vendor/composer/bin/composer.phar" self-update
+    php "vendor/composer/bin/composer.phar" self-update | indent
 
     status "Installing application dependencies with Composer"
     {
@@ -347,20 +347,6 @@ SH
 
 source ".profile.d/php.sh"
 
-status "Bundling forego"
-FOREGO_URL=https://godist.herokuapp.com/projects/ddollar/forego/releases/current/linux-amd64/forego
-if [ ! -f "$CACHE_DIR/forego" ]; then
-    echo -n "Fetching forego binary from $FOREGO_URL..." | indent
-    curl --silent -L -o "$CACHE_DIR/forego" $FOREGO_URL
-    echo "Done"
-fi
-mkdir -p $APP_PREFIX/vendor/bin
-cp -v "$CACHE_DIR/forego" "$APP_PREFIX/vendor/bin" | indent
-chmod +x $APP_PREFIX/vendor/bin/forego
-
-status "forego Version"
-forego version 2>&1 | indent
-
 status "Bundling NGINX ${NGINX_VERSION}"
 fetch_engine_package nginx "$NGINX_VERSION" $APP_PREFIX/vendor/nginx | indent
 
@@ -441,6 +427,20 @@ if ! package_composer_install_disabled; then
     install_composer_deps "$BUILD_DIR"
 fi
 
+status "Bundling forego"
+FOREGO_URL=https://godist.herokuapp.com/projects/ddollar/forego/releases/current/linux-amd64/forego
+if [ ! -f "$CACHE_DIR/forego" ]; then
+    echo -n "Fetching forego binary from $FOREGO_URL..." | indent
+    curl --silent -L -o "$CACHE_DIR/forego" $FOREGO_URL
+    echo "Done"
+fi
+mkdir -p $APP_PREFIX/vendor/forego/bin
+cp -v "$CACHE_DIR/forego" "$APP_PREFIX/vendor/forego/bin"
+chmod +x $APP_PREFIX/vendor/forego/bin/forego
+
+status "forego Version"
+forego version 2>&1 | indent
+
 LOG_FILES=$(unique_array ${LOG_FILES[@]} ${USER_LOG_FILES[@]})
 if [ -n "$FRAMEWORK" ] && [ -f "$FRAMEWORK" ]; then
     FRAMEWORK_LOG_FILES=$("$FRAMEWORK" get-log-files)
@@ -462,7 +462,7 @@ fi
 "$FRAMEWORK" post-compile "$BUILD_DIR" "$CACHE_DIR" || true
 
 status "Vendoring binaries into slug"
-VENDOR_DIRS="libmcrypt freetds libicu nginx php"
+VENDOR_DIRS="libmcrypt freetds libicu nginx php forego"
 for VENDOR_PACKAGE in $VENDOR_DIRS; do
     echo $VENDOR_PACKAGE | indent
     [ ! $COMPILING_IN_PLACE ] && mv $APP_PREFIX/vendor/$VENDOR_PACKAGE vendor/$VENDOR_PACKAGE
