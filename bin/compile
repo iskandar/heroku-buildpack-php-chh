@@ -439,7 +439,7 @@ cp -v "$CACHE_DIR/forego" "$APP_PREFIX/vendor/forego/bin"
 chmod +x $APP_PREFIX/vendor/forego/bin/forego
 
 status "forego Version"
-forego version 2>&1 | indent
+$APP_PREFIX/vendor/forego/bin/forego version 2>&1 | indent
 
 LOG_FILES=$(unique_array ${LOG_FILES[@]} ${USER_LOG_FILES[@]})
 if [ -n "$FRAMEWORK" ] && [ -f "$FRAMEWORK" ]; then

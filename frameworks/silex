@@ -26,6 +26,8 @@ case "$1" in
         ;;
     compile)
         echo "-----> Setting up Silex app"
-        cp "$basedir/../conf/nginx/silex.conf.erb" "$BUILD_DIR/conf/site.conf.erb"
+        if [[ -f $basedir/../conf/nginx/silex.conf.erb ]] && [[ -d $BUILD_DIR/conf ]]; then
+            cp "$basedir/../conf/nginx/silex.conf.erb" "$BUILD_DIR/conf/site.conf.erb"
+        fi
         ;;
 esac
