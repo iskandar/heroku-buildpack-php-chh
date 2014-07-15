@@ -9,6 +9,6 @@ detect)
     ;;
 compile)
     echo "-----> Setting up default configuration"
-    cp "$basedir/../conf/nginx/default_site.conf.erb" "$BUILD_DIR/conf/site.conf.erb"
+    cp "$basedir/../conf/nginx/default_site.conf.erb" "$BUILD_DIR/conf/site.conf.erb" || true
     ;;
 esac
