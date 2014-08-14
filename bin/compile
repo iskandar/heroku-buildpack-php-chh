@@ -419,12 +419,15 @@ fi
 
 "$FRAMEWORK" compile "$BUILD_DIR" "$CACHE_DIR"
 
-if ! package_npm_install_disabled; then
-    install_node_deps "$BUILD_DIR"
-fi
-
+# Install Composer deps before node deps.
+# This is because we are biased towards Composer-based 'pre-install' scripts,
+# some of which may rewrite package.json!
 if ! package_composer_install_disabled; then
     install_composer_deps "$BUILD_DIR"
+fi
+
+if ! package_npm_install_disabled; then
+    install_node_deps "$BUILD_DIR"
 fi
 
 status "Bundling forego"
