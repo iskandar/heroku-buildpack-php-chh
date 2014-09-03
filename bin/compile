@@ -273,6 +273,7 @@ export_env_dir "$ENV_DIR"
 
 # Download jq binary for JSON processing
 export PATH="$HOME/bin:$PATH"
+mkdir -p "$HOME/bin" || true
 curl "http://${S3_BUCKET}.s3.amazonaws.com/jq/jq" -L -s -o - > "$HOME/bin/jq"
 chmod +x "$HOME/bin/jq"
 
